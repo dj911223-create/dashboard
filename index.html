@@ -1,1 +1,370 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>스마트 팩토리 설비 모니터링 대시보드</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts (Inter) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col">
 
+    <!-- 상단 헤더 -->
+    <header class="bg-slate-800/80 border-b border-slate-700 sticky top-0 z-50 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-indigo-600 p-2 rounded-xl text-white shadow-lg shadow-indigo-500/30">
+                    <i class="fa-solid fa-industry text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold tracking-tight text-white">Smart Factory IoT Dashboard</h1>
+                    <p class="text-xs text-slate-400">설비 실시간 텔레메트리 및 이상 감지 시스템</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <div class="flex items-center space-x-2 bg-slate-900/60 px-3 py-1.5 rounded-full border border-slate-700">
+                    <span class="relative flex h-3 w-3">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                    </span>
+                    <span id="connection-status" class="text-xs font-medium text-emerald-400">실시간 연동 중</span>
+                </div>
+                <button onclick="refreshData()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-1.5 rounded-lg text-xs font-medium transition shadow-md flex items-center space-x-1.5">
+                    <i class="fa-solid fa-rotate-right"></i>
+                    <span>새로고침</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 메인 컨텐츠 -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full space-y-6">
+
+        <!-- KPI 카드 섹션 -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            <!-- 가동 설비 수 -->
+            <div class="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-5 shadow-xl relative overflow-hidden">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">총 모니터링 설비</p>
+                        <h3 id="kpi-total-eq" class="text-2xl font-bold text-white mt-1">4 대</h3>
+                    </div>
+                    <div class="p-3 bg-blue-500/10 text-blue-400 rounded-xl border border-blue-500/20">
+                        <i class="fa-solid fa-server text-xl"></i>
+                    </div>
+                </div>
+                <div class="mt-4 flex items-center text-xs text-slate-400">
+                    <span class="text-emerald-400 font-semibold flex items-center mr-1.5"><i class="fa-solid fa-arrow-up mr-0.5"></i> 정상 가동</span>
+                    <span>모든 센서 활성화</span>
+                </div>
+            </div>
+
+            <!-- 평균 온도 -->
+            <div class="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-5 shadow-xl relative overflow-hidden">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">평균 작동 온도</p>
+                        <h3 id="kpi-avg-temp" class="text-2xl font-bold text-white mt-1">0.0 °C</h3>
+                    </div>
+                    <div class="p-3 bg-amber-500/10 text-amber-400 rounded-xl border border-amber-500/20">
+                        <i class="fa-solid fa-temperature-high text-xl"></i>
+                    </div>
+                </div>
+                <div class="mt-4 flex items-center text-xs text-slate-400">
+                    <span class="text-slate-300 font-medium mr-1.5">임계치 미만</span>
+                    <span>안정 구간</span>
+                </div>
+            </div>
+
+            <!-- 평균 압력 -->
+            <div class="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-5 shadow-xl relative overflow-hidden">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">평균 시스템 압력</p>
+                        <h3 id="kpi-avg-pres" class="text-2xl font-bold text-white mt-1">0.0 PSI</h3>
+                    </div>
+                    <div class="p-3 bg-indigo-500/10 text-indigo-400 rounded-xl border border-indigo-500/20">
+                        <i class="fa-solid fa-gauge-high text-xl"></i>
+                    </div>
+                </div>
+                <div class="mt-4 flex items-center text-xs text-slate-400">
+                    <span class="text-indigo-400 font-semibold flex items-center mr-1.5">정상 압력</span>
+                    <span>유지 중</span>
+                </div>
+            </div>
+
+            <!-- 이상 감지 상태 -->
+            <div class="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-5 shadow-xl relative overflow-hidden">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">설비 경고 / 이상</p>
+                        <h3 id="kpi-warning-count" class="text-2xl font-bold text-emerald-400 mt-1">0 건</h3>
+                    </div>
+                    <div id="kpi-warning-icon-bg" class="p-3 bg-emerald-500/10 text-emerald-400 rounded-xl border border-emerald-500/20">
+                        <i class="fa-solid fa-shield-halved text-xl"></i>
+                    </div>
+                </div>
+                <div class="mt-4 flex items-center text-xs text-slate-400">
+                    <span id="kpi-warning-text" class="text-emerald-400 font-medium">모든 설비 양호</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 차트 섹션 -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- 온도 & 진동 추이 차트 -->
+            <div class="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-5 shadow-xl flex flex-col justify-between">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-sm font-semibold text-slate-200 flex items-center space-x-2">
+                        <i class="fa-solid fa-chart-line text-indigo-400"></i>
+                        <span>설비별 온도 및 진동 트렌드</span>
+                    </h2>
+                    <span class="text-xs text-slate-400">실시간 텔레메트리</span>
+                </div>
+                <div class="relative h-72 w-full">
+                    <canvas id="tempVibChart"></canvas>
+                </div>
+            </div>
+
+            <!-- 전류 & RPM 트렌드 차트 -->
+            <div class="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-5 shadow-xl flex flex-col justify-between">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-sm font-semibold text-slate-200 flex items-center space-x-2">
+                        <i class="fa-solid fa-bolt text-amber-400"></i>
+                        <span>전류 및 RPM 성능 지표</span>
+                    </h2>
+                    <span class="text-xs text-slate-400">실시간 텔레메트리</span>
+                </div>
+                <div class="relative h-72 w-full">
+                    <canvas id="currentRpmChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 설비 목록 테이블 -->
+        <div class="bg-slate-800/60 border border-slate-700/80 rounded-2xl shadow-xl overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-700 flex items-center justify-between">
+                <div>
+                    <h2 class="text-sm font-semibold text-white">설비별 상세 현황판</h2>
+                    <p class="text-xs text-slate-400">실시간 데이터 스트림 기반 장비 상태</p>
+                </div>
+                <div class="text-xs text-slate-400" id="last-updated">마지막 동기화: 방금 전</div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-sm">
+                    <thead>
+                        <tr class="bg-slate-900/50 text-slate-400 text-xs font-semibold uppercase tracking-wider border-b border-slate-700">
+                            <th class="py-3 px-6">설비 ID</th>
+                            <th class="py-3 px-6">측정 시각</th>
+                            <th class="py-3 px-6">온도 (°C)</th>
+                            <th class="py-3 px-6">진동 (mm/s)</th>
+                            <th class="py-3 px-6">압력 (PSI)</th>
+                            <th class="py-3 px-6">전류 (A)</th>
+                            <th class="py-3 px-6">RPM</th>
+                            <th class="py-3 px-6 text-center">상태</th>
+                        </tr>
+                    </thead>
+                    <tbody id="equipment-table-body" class="divide-y divide-slate-700/50 text-slate-300">
+                        <!-- 동적으로 채워짐 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- 푸터 -->
+    <footer class="bg-slate-900 border-t border-slate-800 py-6 mt-10 text-center text-xs text-slate-500">
+        <p>© 2026 Smart Factory Monitoring System. Powered by Tailwind CSS & Chart.js</p>
+    </footer>
+
+    <!-- 대시보드 로직 스크립트 -->
+    <script>
+        const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSaTAtvlhvHXo_d7JkAMVtj132nWgbgEMCX5duGHrENN5DxNNJeqzFghTr-hFd3gk6hps_3dC6Gc2hv/pub?output=csv";
+
+        let tempVibChart = null;
+        let currentRpmChart = null;
+
+        // 차트 초기화
+        function initCharts() {
+            const ctx1 = document.getElementById('tempVibChart').getContext('2d');
+            tempVibChart = new Chart(ctx1, {
+                type: 'line',
+                data: { labels: [], datasets: [
+                    { label: '온도 (°C)', data: [], borderColor: '#f87171', backgroundColor: 'rgba(248, 113, 113, 0.1)', tension: 0.3, fill: true },
+                    { label: '진동 (mm/s)', data: [], borderColor: '#38bdf8', backgroundColor: 'rgba(56, 189, 248, 0.1)', tension: 0.3, fill: true }
+                ]},
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#cbd5e1', font: { size: 11 } } } }, scales: { x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(51, 65, 85, 0.4)' } }, y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(51, 65, 85, 0.4)' } } } }
+            });
+
+            const ctx2 = document.getElementById('currentRpmChart').getContext('2d');
+            currentRpmChart = new Chart(ctx2, {
+                type: 'bar',
+                data: { labels: [], datasets: [
+                    { label: '전류 (A)', data: [], backgroundColor: '#fbbf24', borderRadius: 4 },
+                    { label: 'RPM (x100)', data: [], backgroundColor: '#818cf8', borderRadius: 4 }
+                ]},
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#cbd5e1', font: { size: 11 } } } }, scales: { x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(51, 65, 85, 0.4)' } }, y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(51, 65, 85, 0.4)' } } } }
+            });
+        }
+
+        // CSV 파싱 및 데이터 업데이트
+        async function refreshData() {
+            try {
+                const response = await fetch(csvUrl);
+                const data = await response.text();
+                parseAndRender(data);
+                document.getElementById('connection-status').textContent = "실시간 연동 중";
+                document.getElementById('connection-status').className = "text-xs font-medium text-emerald-400";
+            } catch (err) {
+                console.error("CSV 로드 실패:", err);
+                document.getElementById('connection-status').textContent = "연동 실패 (시뮬레이션 모드)";
+                document.getElementById('connection-status').className = "text-xs font-medium text-amber-400";
+                loadMockData();
+            }
+            document.getElementById('last-updated').textContent = `마지막 동기화: ${new Date().toLocaleTimeString()}`;
+        }
+
+        function parseAndRender(csvText) {
+            const rows = csvText.trim().split('\n').map(r => r.split(','));
+            if (rows.length < 2) return;
+
+            // 헤더 확인 및 데이터 추출 (timestamp, equip_id, temp, vib, pressure, current, rpm, status)
+            const items = rows.slice(1).map(row => ({
+                timestamp: row[0]?.trim() || '',
+                equip_id: row[1]?.trim() || 'EQ-00',
+                temp: parseFloat(row[2]) || 0,
+                vib: parseFloat(row[3]) || 0,
+                pressure: parseFloat(row[4]) || 0,
+                current: parseFloat(row[5]) || 0,
+                rpm: parseFloat(row[6]) || 0,
+                status: row[7]?.trim() || 'Normal'
+            }));
+
+            updateDashboardUI(items);
+        }
+
+        function loadMockData() {
+            const mockItems = [
+                { timestamp: '10:00:01', equip_id: 'EQ-01', temp: 65.4, vib: 1.2, pressure: 30.5, current: 12.4, rpm: 1500, status: 'Normal' },
+                { timestamp: '10:00:02', equip_id: 'EQ-02', temp: 72.1, vib: 2.8, pressure: 32.1, current: 15.2, rpm: 1750, status: 'Warning' },
+                { timestamp: '10:00:03', equip_id: 'EQ-03', temp: 58.9, vib: 0.9, pressure: 28.4, current: 10.1, rpm: 1200, status: 'Normal' },
+                { timestamp: '10:00:04', equip_id: 'EQ-04', temp: 80.5, vib: 4.1, pressure: 35.0, current: 18.9, rpm: 2100, status: 'Critical' }
+            ];
+            updateDashboardUI(mockItems);
+        }
+
+        function updateDashboardUI(items) {
+            let totalTemp = 0;
+            let totalPres = 0;
+            let warningCount = 0;
+
+            const tbody = document.getElementById('equipment-table-body');
+            tbody.innerHTML = '';
+
+            const labels = [];
+            const temps = [];
+            const vibs = [];
+            const currents = [];
+            const rpms = [];
+
+            items.forEach(item => {
+                totalTemp += item.temp;
+                totalPres += item.pressure;
+                if (item.status.toLowerCase() !== 'normal') warningCount++;
+
+                labels.push(item.equip_id);
+                temps.push(item.temp);
+                vibs.push(item.vib);
+                currents.push(item.current);
+                rpms.push(item.rpm / 100); // 보기 좋게 스케일링
+
+                // 상태 배지 설정
+                let badgeClass = "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+                let statusText = "정상 (Normal)";
+                if (item.status.toLowerCase() === 'warning') {
+                    badgeClass = "bg-amber-500/10 text-amber-400 border-amber-500/20";
+                    statusText = "경고 (Warning)";
+                } else if (item.status.toLowerCase() === 'critical' || item.status.toLowerCase() === 'error') {
+                    badgeClass = "bg-rose-500/10 text-rose-400 border-rose-500/20";
+                    statusText = "위험 (Critical)";
+                }
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-700/30 transition";
+                tr.innerHTML = `
+                    <td class="py-3 px-6 font-semibold text-white">${item.equip_id}</td>
+                    <td class="py-3 px-6 text-slate-400 text-xs">${item.timestamp}</td>
+                    <td class="py-3 px-6">${item.temp} °C</td>
+                    <td class="py-3 px-6">${item.vib} mm/s</td>
+                    <td class="py-3 px-6">${item.pressure} PSI</td>
+                    <td class="py-3 px-6">${item.current} A</td>
+                    <td class="py-3 px-6">${item.rpm} RPM</td>
+                    <td class="py-3 px-6 text-center">
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${badgeClass}">
+                            ${statusText}
+                        </span>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // KPI 업데이트
+            document.getElementById('kpi-total-eq.').textContent = `${items.length} 대`;
+            document.getElementById('kpi-avg-temp').textContent = items.length ? `${(totalTemp / items.length).toFixed(1)} °C` : '0.0 °C';
+            document.getElementById('kpi-avg-pres').textContent = items.length ? `${(totalPres / items.length).toFixed(1)} PSI` : '0.0 PSI';
+            
+            const warnCountEl = document.getElementById('kpi-warning-count');
+            const warnIconBg = document.getElementById('kpi-warning-icon-bg');
+            const warnText = document.getElementById('kpi-warning-text');
+
+            warnCountEl.textContent = `${warningCount} 건`;
+            if (warningCount > 0) {
+                warnCountEl.className = "text-2xl font-bold text-rose-400 mt-1";
+                warnIconBg.className = "p-3 bg-rose-500/10 text-rose-400 rounded-xl border border-rose-500/20";
+                warnText.textContent = "이상 징후 감지됨";
+                warnText.className = "text-rose-400 font-semibold";
+            } else {
+                warnCountEl.className = "text-2xl font-bold text-emerald-400 mt-1";
+                warnIconBg.className = "p-3 bg-emerald-500/10 text-emerald-400 rounded-xl border border-emerald-500/20";
+                warnText.textContent = "모든 설비 양호";
+                warnText.className = "text-emerald-400 font-medium";
+            }
+
+            // 차트 데이터 갱신
+            if (tempVibChart && currentRpmChart) {
+                tempVibChart.data.labels = labels;
+                tempVibChart.data.datasets[0].data = temps;
+                tempVibChart.data.datasets[1].data = vibs;
+                tempVibChart.update();
+
+                currentRpmChart.data.labels = labels;
+                currentRpmChart.data.datasets[0].data = currents;
+                currentRpmChart.data.datasets[1].data = rpms;
+                currentRpmChart.update();
+            }
+        }
+
+        // 초기 실행 및 주기적 갱신 (10초)
+        window.addEventListener('DOMContentLoaded', () => {
+            initCharts();
+            refreshData();
+            setInterval(refreshData, 10000);
+        });
+    </script>
+</body>
+</html>
